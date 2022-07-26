@@ -1,0 +1,87 @@
+---
+title: "Maps"
+author: "Luis E Segura"
+date: '2022-07-26'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list = ls()) ### remove all elements in your environment
+
+### load packages
+library(tidyverse)
+library(urbnmapr)
+library(gridExtra)
+
+```
+
+
+```{r, }
+states_map <- urbnmapr::states
+
+states_map <- states_map %>%
+  mutate(medicaid_16 = ifelse(state_abbv %in% c("WA", "OR", "NV", "CA", "AZ", 
+                                                "AK", "NM", "CO", "ND", "MN", 
+                                                "LA", "IL", "KY", "OH", "WV", 
+                                                "PA", "NY", "VT", "HI", "MA", 
+                                                "RI", "CT", "NJ", "DE", "MD", 
+                                                "DC"), 1, 
+                              ifelse(state_abbv %in% c("MT", "IA", "AR", "IN", 
+                                                       "MI", "NH"), 3, 2)), 
+         medicaid_20 = ifelse(state_abbv %in% c("WY", "SD", "WI", "KS", "TX", 
+                                                "MS", "AL", "TN", "GA", "FL", 
+                                                "SC", "NC"), 2, 1), 
+         medicaid_16.fct = factor(medicaid_16, 
+                                  labels = c("Adopted (26 States and DC)", 
+                                             "Not Adopting At This Time (19 States)", 
+                                             "Adopted Alternative To Traditional (6 States)")), 
+         medicaid_20.fct = factor(medicaid_20, 
+                                  labels = c("Adopted (39 States and DC)", 
+                                             "Not Adopting At This Time (12 States)")))
+
+
+
+map.16 <- states_map %>%
+  ggplot(aes(x = long, y = lat, group = group, fill = medicaid_16.fct)) +
+  geom_polygon(color =  "white") +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) + 
+  scale_fill_manual(values = c("navy", "orange", "green3")) +
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank(), 
+        legend.title = element_blank()) + 
+  labs(y = "", x = "", 
+       title = "A. 2016") 
+
+map.20 <- states_map %>%
+  ggplot(aes(x = long, y = lat, group = group, fill = medicaid_20.fct)) +
+  geom_polygon(color =  "white") +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) + 
+  scale_fill_manual(values = c("navy", "orange")) +
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank(), 
+        legend.title = element_blank()) + 
+  labs(y = "", x = "", 
+       title = "B. 2020") 
+
+map <- grid.arrange(map.16, map.20, 
+             ncol=2)
+
+ggsave(map, filename = "medicaid_maps.jpeg", width = 16, height = 9, units = "in", dpi = 1800)
+
+```
