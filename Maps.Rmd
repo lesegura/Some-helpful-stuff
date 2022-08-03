@@ -17,6 +17,9 @@ library(tidyverse)
 library(urbnmapr)
 library(gridExtra)
 
+### NOTE. To install urbnmapr you need to install it from devtools. Use the following code
+### devtools::install_github(“UrbanInstitute/urbnmapr”)
+
 ```
 
 

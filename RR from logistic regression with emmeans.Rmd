@@ -1,0 +1,80 @@
+---
+title: "Getting Risk Ratios using emmeans (Marginal Standardization)"
+author: "Luis E Segura"
+date: "2022-08-03"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+rm(list = ls()) ### remove all elements in your environment
+
+### load packages
+library(tidyverse)
+library(emmeans)
+
+```
+
+```{r load data, }
+load(url("https://www.dropbox.com/s/96uxjt6d9y5srul/NSDUH_2019.RData?dl=1")) 
+
+
+nsduh <- PUF2019_100920 %>%
+  rename_all(tolower)  %>%
+  select(questid2, catag6, irsex, newrace2, ircgrfm, alcyr, mrjyr, k6scyr) %>%
+  as_tibble() %>%
+  mutate(age = factor(catag6, labels = c("12-17 yo", "18-25 yo", "26-34 yo", 
+                                         "35-49 yo", "50-64 yo", "65+ yo")), 
+         sex = factor(irsex, labels = c("Male", "Female")),
+         race = factor(newrace2, labels = c("NH whites", "NH Blacks", "NH NA/AK", 
+                                            "NH NH/OPI", "NH Asians", "NH more than one race", 
+                                            "Hispanics")), 
+         race.rec = factor(case_when(newrace2 == 1 ~ 1,
+                              newrace2 == 2 ~ 2, 
+                              newrace2 > 2 & newrace2 < 7 ~ 3, 
+                              newrace2 == 7 ~ 4), 
+                           labels = c("NH whites", "NH Blacks", "NH Others", 
+                                      "Hispanics")), 
+         pm.cig.use = ifelse(ircgrfm > 90, NA, ircgrfm), 
+         py.alc.use = factor(alcyr, labels = c("No", "Yes")), 
+         py.mj.use = factor(mrjyr, labels = c("No", "Yes")),
+         id = row_number()) %>%
+  relocate(id, .before = questid2)
+
+### removing original file
+rm(PUF2019_100920) 
+
+```
+
+```{r logistic model fit, }
+### Fit logistic model. Coefficients are in the logit scale
+m1 <- glm(py.mj.use ~ age + sex * race.rec + pm.cig.use + py.alc.use, family = quasibinomial, data = nsduh)
+
+summary(m1)
+
+### Get log odds of the outcome by sex and race
+m1.emm <- emmeans(m1, "sex", by = c("race.rec"), infer=c(TRUE, TRUE), level=.95, data = nsduh)
+
+m1.emm %>%
+  ### get the contrast (difference) in log odds and exponentiate (type = "response") yielding the OR
+  contrast(by = c("race.rec"), method = "trt.vs.ctrl1", infer = c(TRUE, TRUE), data = df, type = "response")
+
+```
+
+```{r get RR with regrid, }
+## Get prevalences instead of log odds using marginal standardization
+m2.emm <- emmeans(m1, "sex", by = c("race.rec"), infer=c(TRUE, TRUE), level=.95, data = nsduh, type = "response")
+
+m2.emm 
+
+### Obtaining RR (or prevalence ratios in this case)
+m2.emm %>%
+  ### transform the emmeans object from probabilities to log
+  regrid(transform = "log") %>%
+  ### obtain the contrast in the response scale (exponentiating the difference of log[prob]) yielding RR
+  contrast(by = c("race.rec"), method = "trt.vs.ctrl1", infer = c(TRUE, TRUE), data = df, type = "response")
+
+```
