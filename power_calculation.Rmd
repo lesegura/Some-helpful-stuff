@@ -1,0 +1,100 @@
+---
+title: "Power Analysis for Multi-level Model"
+author: "Luis E Segura"
+date: "2023-01-06"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+options(tinytex.verbose = TRUE)
+
+rm(list = ls())
+
+library(tidyverse)
+library(lme4)
+library(skimr)
+library(simr)
+
+```
+
+```{r, power aim 1 }
+### 81,853 parenting women aged > 18, 3.7% misuse of opioids among women (NSDUH 2020 detailed tables). opioid use disorder among women 0.9% in 2020 (nsduh detailed tables). medication for oud 18%. hospital intreatment 24.1%. Source: SAMHSA, Center for Behavioral Health Statistics and Quality, National Survey on Drug Use and Health, 2019 and Quarters 1 and 4, 2020. 17% received some social security program (https://www.census.gov/library/stories/2022/05/who-is-receiving-social-safety-net-benefits.html)
+
+### NSDUH sampled ~81,853 parenting women aged 18-64 between 2013-2020, which is on average 10,232 parenting women of the same age per year. The ability to detect differential changes is partly determined by the sample size within each state, and precision is improved through statistical models. Because quantifying the power gained through modeling is difficult, we conservatively present detectible differences based only on total sample size (i.e., worst-case scenario is that precision is not improved by modeling). Furthermore, we approximate the power of our logistic regression model framework analyses using cross-sectional chi-squared tests (based on two-sided α = 0.05) comparing participants living in states with higher eligibility to social safety net programs to those with lower eligibility to social safety net programs. For these calculations, we further assume that roughly 25% of individuals live in states with higher eligibility and 25% in states with lower eligibility (i.e., 2,558 exposed and unexposed). Table X presents conservative estimates of size of relative risks we can detect with >80% power for individual-level analyses presented above. Estimated risks correspond to drug use prevalence in NSDUH: 1% for heroin, 4.5% for nonmedical opioid use, and 18% for medication for OUD.
+
+power <- pwr.2p.test(n = 2558, sig.level = 0.05, power = .80)
+
+### Function to obtain the risk in the exposed from Cohen's unitless effect size using arcsine transformation
+p1_fun <- function(h, p2) {
+  p1 <- (sin(h / 2 + asin(sqrt(p2)))) ^ 2
+  return(p1)
+}
+
+### Heroin Use
+p1 <- p1_fun(power$h, 0.01) ### p1 = 0.01928964
+
+RR_prev <- 1 / (p1 / 0.01) ### Detectable risk ratio with >80% power is 0.518413
+
+round((RR_prev * 0.01) * 100, 2) ### Detectable Risk in exposed with >80% power is 0.52 
+
+### Nonmedical Use of Prescription Opioids
+p1 <- p1_fun(power$h, 0.045) ### p1 = 0.06261916
+
+RR_prev <- 1 / (p1 / 0.045) ### Detectable risk ratio with >80% power is 0.7186299
+
+round((RR_prev * 0.045) * 100, 2) ### Detectable Risk in exposed with >80% power is 3.23 
+
+### Medication for OUD
+p1 <- p1_fun(power$h, 0.18) ### p1 = 0.211048
+
+RR_prev <- 1 / (p1 / 0.18) ### Detectable risk ratio with >80% power is 0.8528864
+
+round((RR_prev * 0.18) * 100, 2) ### Detectable Risk in exposed with >80% power is 15.35 
+
+
+```
+
+```{r, power aim 2}
+### 81,853 parenting women aged > 18, 3.7% misuse of opioids among women (NSDUH 2020 detailed tables). opioid use disorder among women 0.9% in 2020 (nsduh detailed tables). medication for oud 18%. hospital intreatment 24.1%. Source: SAMHSA, Center for Behavioral Health Statistics and Quality, National Survey on Drug Use and Health, 2019 and Quarters 1 and 4, 2020. 17% received some social security program (https://www.census.gov/library/stories/2022/05/who-is-receiving-social-safety-net-benefits.html). Food insecurity for single parent families is 33% (Lucie Schmidt & Lara Shore-Sheppard & Tara Watson, 2016. "The Effect of Safety-Net Programs on Food Insecurity," Journal of Human Resources, University of Wisconsin Press, vol. 51(3), pages 589-614).
+
+### NSDUH sampled ~81,853 parenting women aged 18-64 between 2013-2020, which is on average 10,232 parenting women of the same age per year. The ability to detect differential changes is partly determined by the sample size within each state, and precision is improved through statistical models. Because quantifying the power gained through modeling is difficult, we conservatively present detectible differences based only on total sample size (i.e., worst-case scenario is that precision is not improved by modeling). Furthermore, we approximate the power of our logistic regression model framework analyses using cross-sectional chi-squared tests (based on two-sided α = 0.05) comparing participants living in states with higher eligibility to social safety net programs to those with lower eligibility to social safety net programs. For these calculations, we further assume that roughly 25% of individuals live in states with higher eligibility and 25% in states with lower eligibility (i.e., 2,558 exposed and unexposed). Also, we assume that 33% of parenting individuals experience some food insecurity. Table X presents conservative estimates of size of relative risks we can detect with >80% power for individual-level analyses presented above. Estimated risks correspond to drug use prevalence in NSDUH: 1% for heroin, 4.5% for nonmedical opioid use, and 18% for medication for OUD.
+
+power <- pwr.2p.test(n = 2558, sig.level = 0.05, power = .80)
+
+### Food Insecurity. Power for the RR M | A
+p1 <- p1_fun(power$h, 0.33) ### p1 = 0.3673203
+
+RR_prev <- 1 / (p1 / 0.33) ### Detectable risk ratio with >80% power is 0.8983984
+
+round((RR_prev * 0.33) * 100, 2) ### Detectable Risk in exposed with >80% power is 29.65 
+
+### Power for the RR Y | M, A = 1. N for those with A = 1 is 2558/2 for exposed and unexposed
+
+power <- pwr.2p.test(n = 1279, sig.level = 0.05, power = .80)
+
+### Heroin Use
+p1 <- p1_fun(power$h, 0.01) ### p1 = 0.02400681
+
+RR_prev <- 1 / (p1 / 0.01) ### Detectable risk ratio with >80% power is 0.4165485
+
+round((RR_prev * 0.01) * 100, 2) ### Detectable Risk in exposed with >80% power is 0.42
+
+### Nonmedical use of prescription opioids
+p1 <- p1_fun(power$h, 0.045) ### p1 = 0.07071272
+
+RR_prev <- 1 / (p1 / 0.045) ### Detectable risk ratio with >80% power is 0.6363777
+
+round((RR_prev * 0.045) * 100, 2) ### Detectable Risk in exposed with >80% power is 2.86 
+
+### Medication for OUD
+p1 <- p1_fun(power$h, 0.18) ### p1 = 0.2244437
+
+RR_prev <- 1 / (p1 / 0.18) ### Detectable risk ratio with >80% power is 0.7186299
+
+round((RR_prev * 0.18) * 100, 2) ### Detectable Risk in exposed with >80% power is 0.03233834 
+
+```

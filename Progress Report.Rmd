@@ -121,6 +121,13 @@ nsduh %>%
   summarise(n = n()) %>%
   mutate(freq = (n / sum(n)) * 100)
 
+nsduh %>%
+  filter(sex == "Female" & catag6 > 1 & irki17_2 > 1) %>%
+  group_by(year) %>%
+  summarise(n = n()) %>%
+  mutate(freq = (n / sum(n)) * 100) %>%
+  mutate(total = mean(n))
+
 library(survey)
 library(srvyr)
 
